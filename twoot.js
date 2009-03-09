@@ -3,12 +3,33 @@
  *
  * */
 var LAST_UPDATE;
+var USERNAME = '';
 
 //Reverse collection
 jQuery.fn.reverse = function() {
   return this.pushStack(this.get().reverse(), arguments);
 }; 
 
+
+function parse_recipients(text) {
+  var item_text_tokens = text.split(/[ ,:]+/);
+  var users = [];
+  for (var k in item_text_tokens) {
+    var v = item_text_tokens[k];
+    if (v.indexOf('@') != 0)
+      break;
+    users.push(v.substr(1));
+  }
+  return users;
+}
+
+function index_in_collection(coll, item) {
+  for (var k in coll) {
+    if (coll[k] == item)
+      return k;
+  }
+  return null;
+}
 
 (function($) {
  $.fn.gettweets = function(o){
@@ -19,7 +40,9 @@ jQuery.fn.reverse = function() {
 		 $.getJSON(url, function(data){
 			 $.each(data.reverse(), function(i, item) { 
 				if($("#msg-" + item.id).length == 0) { // <- fix for twitter caching which sometimes have problems with the "since" parameter
-				 	list.prepend('<li id="msg-' + item.id + '"><img class="profile_image" src="' + item.user.profile_image_url + '" alt="' + item.user.name + '" /><span class="time" title="' + item.created_at + '">' + relative_time(item.created_at) + '</span> <a class="user" href="javascript:addAddress(\'' + item.user.screen_name + '\')">' + item.user.screen_name + '</a><div class="tweet_text">' + item.text.replace(/(\w+:\/\/[A-Za-z0-9-_]+\.[A-Za-z0-9-_:%&\?\/.=]+)/g, '<a href="$1">$1</a>').replace(/[\@]+([A-Za-z0-9-_]+)/g, '<a href="http://twitter.com/$1">@$1</a>').replace(/[&lt;]+[3]/g, "<tt class='heart'>&#x2665;</tt>") + '</div></li>');
+				  var to_you = index_in_collection(parse_recipients(item.text), USERNAME) != null;
+				  var from_you = item.user.screen_name == USERNAME;
+				 	list.prepend('<li id="msg-' + item.id + '" class="'+(to_you ? 'to_you' : (from_you ? 'from_you' : ''))+'"><img class="profile_image" src="' + item.user.profile_image_url + '" alt="' + item.user.name + '" /><span class="time" title="' + item.created_at + '">' + relative_time(item.created_at) + '</span> <a class="user" href="javascript:addAddress(\'' + item.user.screen_name + '\')">' + item.user.screen_name + '</a><div class="tweet_text">' + item.text.replace(/(\w+:\/\/[A-Za-z0-9-_]+\.[A-Za-z0-9-_:%&\?\/.=]+)/g, '<a href="$1">$1</a>').replace(/[\@]+([A-Za-z0-9-_]+)/g, '<a href="http://twitter.com/$1">@$1</a>').replace(/[&lt;]+[3]/g, "<tt class='heart'>&#x2665;</tt>") + '</div></li>');
 
 					// Don't want Growl notifications? Comment out the following method call
 					fluid.showGrowlNotification({
